@@ -1,0 +1,102 @@
+---
+title: "nClimGrid"
+author: "C Schultz"
+date: "1/21/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Initial setup; key inputs
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Data processing and analysis basics
+library(tidyverse)
+library(dplyr)
+library(RcppRoll)
+library(data.table)
+library(zoo)
+library(ggplot2)
+library(trend)
+# For geospatial analysis
+library(ncdf4)
+# library(rhdf5)
+# library(RCurl) # needed if password protected site
+
+# GIS packages
+library(maptools)
+library(raster)
+library(rgeos)
+#
+# source("code/functions/read_br_spatialave_func.R", local = TRUE)
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Don't want to lose these references:
+
+http://geog.uoregon.edu/bartlein/courses/geog490/week04-netCDF.html
+
+https://www.earthdatascience.org/courses/earth-analytics/time-series-data/
+
+```{r, echo=FALSE}
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Download and do preliminary processing
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+
+# Download the file -----------------------------------------------------------
+nclimurl <- "ftp://ftp.ncdc.noaa.gov/pub/data/climgrid/"
+filename <- "nClimGrid_v1.0_monthly_189501_c20150401.tar.gz"
+nclimfile <- paste(nclimurl, filename, sep="")
+destfile <- paste("data/nclimgrid_5km_v1.0/", filename, sep="")
+download.file(nclimfile, destfile, method = "libcurl", quiet = FALSE, mode = "wb")
+
+# Unzip the file --------------------------------------------------------------
+untar(destfile, exdir = "data/nclimgrid_5km_v1.0/nclim189501/")
+
+# Read file and clip to rectangle ---------------------------------------------
+tmppath <- "data/nclimgrid_5km_v1.0/nclim189501/"
+tmpname <- "189501.prcp.conus.pnt"
+
+tmp_precip.df <- file.path(paste(tmppath, tmpname, sep="")) %>%
+    data.table::fread(
+      data.table = FALSE,
+      header = FALSE,
+      showProgress = FALSE, col.names = c("lat", "lon", "p_mm")) %>%
+  filter(lat > 37.8 & lat < 40.3 & lon > -79.8 & lon < -76.8)
+# nclimgrid_coords <- tmp_precip.df %>%
+#   dplyr::select(lon, lat)
+nclimgrid_coords <- cbind(tmp_precip.df$lon, tmp_precip.df$lat)
+nclimgrid_pnts <- SpatialPoints(coords = nclimgrid_coords)
+
+# Clip to upper Potomac watershed ---------------------------------------------
+upper_pot_shp_file <- "input/gis/UpperPotWatershed_dd.shp"
+upper_pot_poly <- readShapePoly(upper_pot_shp_file)
+# summary(upper_pot_shp)
+# x -79.69099 -76.89138
+# y  37.87822  40.23735
+upper_pot_poly <- as(upper_pot_poly, "SpatialPolygons")
+upper_pot_5km_pnts <- over(nclimgrid_pnts, upper_pot_poly)
+upper_pot_5km_pnts2 <- data.frame(nclimgrid_coords[!is.na(upper_pot_5km_pnts), ])
+names(upper_pot_5km_pnts2) <- c("lon", "lat")
+fin_precip.df <- left_join(upper_pot_5km_pnts2, tmp_precip.df, by = c("lon", "lat"))
+
+plot(upper_pot_shp)
+points(upper_pot_5km_pnts2)
+
+
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

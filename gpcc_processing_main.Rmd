@@ -1,0 +1,62 @@
+---
+title: "GPCC meteorological data"
+author: "C Schultz"
+date: "1/20/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Initial setup; key inputs
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Data processing and analysis basics
+library(tidyverse)
+library(dplyr)
+library(RcppRoll)
+library(data.table)
+library(zoo)
+library(ggplot2)
+library(trend)
+# For geospatial analysis
+library(ncdf4)
+# library(rhdf5)
+library(raster)
+#
+# source("code/functions/read_br_spatialave_func.R", local = TRUE)
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+These data are from the Global Precipitation Climatology Center (GPCC) - at https://www.esrl.noaa.gov/psd/data/gridded/data.gpcc.html. They have a variety of gridded data products, but for hydrological studies and trend analysis, they recommend what seems to be their most recent product, the “Full Data Product”, V2018, based on quality controlled observation data from 67,200 stations around the world with periods of record of 10 years or more. The GPCC’s gridded gauge analysis products are “not bias-corrected for systematic gauge measuring errors”, but error estimates and number of gauges (for a given grid cell?) are available via their Visualizer. V2018 provides monthly precipitation totals from 1901-2016 at a spatial resolution of 0.5 degrees. On the data download page, https://opendata.dwd.de/climate_environment/GPCC/html/download_gate.html, a 0.25 degree product is now available, now from 1891-2016. 
+
+I downloaded this data on Jan 20, 2020, as gpcc_full_data_monthly_v2018_025.nc.gz. I used the OS 10.15.2 Archive Utility to unzip this file, to obtain the Netcdf file, gpcc_full_data_monthly_v2018_025.nc. I also downloaded the product info doc: GPCC_info_products_v2018.pdf.
+
+The citation is
+Schneider, Udo; Becker, Andreas; Finger, Peter; Meyer-Christoffer, Anja; Ziese, Markus (2018): GPCC Full Data Monthly Product Version 2018 at 0.25°: Monthly Land-Surface Precipitation from Rain-Gauges built on GTS-based and Historical Data. DOI: 10.5676/DWD_GPCC/FD_M_V2018_025
+
+To learn how to read NetCDF files and do geospatial analyses in R, I am relying on the course material for the University of Oregon's course, R for Earth Systems Science, by Patrick Bartlein, available at http://geog.uoregon.edu/bartlein/courses/geog490/index.html (especially Chapters 4 and 6).
+
+
+```{r}
+# Read the NetCDF file from GPCC
+ncpath <- "data/"
+ncname <- "gpcc_full_data_monthly_v2018_025.nc"
+ncfname <- paste(ncpath, ncname, sep="")
+dname <- "tmp"
+ncin <- nc_open(ncfname)
+print(ncin)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
